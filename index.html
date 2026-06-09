@@ -1,1 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mazey Game 🎮</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #1a1a2e; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; }
 
+    /* ── PASSWORD SCREEN ── */
+    #password-screen {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; width: 100%; padding: 20px;
+    }
+    #password-screen h1 { font-size: 2.4rem; color: #FFD700; margin-bottom: 8px; text-shadow: 0 0 20px rgba(255,215,0,0.4); }
+    #password-screen p  { color: #8899cc; margin-bottom: 32px; font-size: 1rem; }
+    #password-screen input {
+      padding: 12px 20px; border-radius: 10px; border: 2px solid #4466aa;
+      background: #0f0f1e; color: #fff; font-size: 1rem; text-align: center;
+      width: 260px; margin-bottom: 12px; outline: none;
+    }
+    #password-screen input:focus { border-color: #FFD700; }
+    #password-screen button {
+      padding: 12px 32px; background: #FFD700; color: #2a1a00; border: none;
+      border-radius: 10px; font-size: 1rem; font-weight: 700; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    #password-screen button:hover { transform: scale(1.04); }
+    #pw-error { color: #ff5555; font-size: 0.9rem; margin-top: 10px; min-height: 20px; }
+    .lock-icon { font-size: 3rem; margin-bottom: 16px; }
+
+    /* ── GAME WRAPPER ── */
+    #game-screen { display: none; width: 100%; padding: 10px 0 20px; }
+    #game-wrap   { font-family: sans-serif; padding: 10px 0; text-align: center; }
+
+    #level-info  { font-size: 14px; color: #8899cc; margin-bottom: 4px; }
+    #level-info b { color: #e0e0e0; font-size: 16px; }
+    #bot-info    { font-size: 13px; color: #8899cc; margin-bottom: 6px; }
+    #coin-balance { font-size: 16px; font-weight: 700; color: #ffc107; margin: 6px 0; }
+    #inv-display  { font-size: 13px; color: #8899cc; min-height: 18px; margin-bottom: 6px; }
+    #maze-canvas  { display: block; margin: 0 auto; border: 2px solid #334; border-radius: 8px; }
+    #status       { font-size: 13px; color: #8899cc; min-height: 20px; margin: 6px 0; }
+    #win-msg      { font-size: 18px; font-weight: 600; color: #e0e0e0; min-height: 28px; margin-top: 6px; }
+
+    .gbtn { margin: 4px 3px; border: 1.5px solid #334; background: #0f1a2e; color: #e0e0e0; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .gbtn.primary  { background: #FFD700; color: #4a3a00; border-color: #c9a000; }
+    .gbtn.shopbtn  { background: #9c27b0; color: white; border-color: #6a1b9a; }
+    .gbtn.usebtn   { background: #00bcd4; color: white; border-color: #00838f; }
+    .gbtn:hover:not(:disabled) { filter: brightness(1.15); }
+    .gbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    #level-sel select { font-size: 13px; padding: 4px 8px; border-radius: 6px; border: 1px solid #334; background: #0f1a2e; color: #e0e0e0; cursor: pointer; }
+    #legend { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; font-size: 11px; color: #8899cc; margin: 4px 0; }
+    .li { display: inline-flex; align-items: center; gap: 4px; }
+    .ld { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+    #lv-counter { font-size: 12px; color: #8899cc; margin: 2px 0; }
+
+    /* ── SHOP ── */
+    #shop-panel { display: none; border: 2px solid #9c27b0; border-radius: 10px; padding: 14px; margin: 14px auto; max-width: 560px; background: #0f1220; }
+    #shop-panel h3 { margin: 0 0 10px; color: #e0e0e0; }
+    #shop-msg { min-height: 18px; font-size: 13px; color: #4caf50; margin-bottom: 8px; font-weight: 600; }
+    .shop-item { display: flex; align-items: center; gap: 10px; padding: 8px 4px; border-top: 1px solid #1e2a3a; }
+    .shop-item:first-of-type { border-top: none; }
+    .sico { font-size: 24px; min-width: 32px; }
+    .sinf { flex: 1; text-align: left; }
+    .snm  { font-weight: 600; font-size: 13px; color: #e0e0e0; }
+    .sds  { font-size: 11px; color: #8899cc; }
+    .sact { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #8899cc; }
+    .ob { background: #4caf50; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+    .eb { background: #2196f3; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; }
+
+    #key-hint { font-size: 11px; color: #556; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     PASSWORD SCREEN
+════════════════════════════════════════════ -->
+<div id="password-screen">
+  <div class="lock-icon">🎮</div>
+  <h1>Mazey Game</h1>
+  <p>Enter the secret password to play!</p>
+  <input type="password" id="pw-input" placeholder="Password..." maxlength="40" />
+  <button onclick="checkPassword()">Let me in! 🚀</button>
+  <div id="pw-error"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     GAME SCREEN
+════════════════════════════════════════════ -->
+<div id="game-screen">
+<div id="game-wrap">
+  <div id="level-info"><b id="level-title">Level 1</b> · <span id="level-desc">Find the gold star!</span></div>
+  <div id="bot-info">Playing as: <b id="bot-name">Mr Brown</b></div>
+  <div id="coin-balance">💰 Coins: <span id="coin-count">0</span></div>
+  <div id="inv-display"></div>
+  <div id="level-sel">Jump to: <select id="level-jump"></select></div>
+  <div id="legend"></div>
+  <div id="lv-counter"></div>
+  <div id="use-row">
+    <button id="use-boost" class="gbtn usebtn" style="display:none">🚀 Use Booster</button>
+    <button id="use-food"  class="gbtn usebtn" style="display:none">🍎 Use Food</button>
+  </div>
+  <canvas id="maze-canvas" width="640" height="480" tabindex="0"></canvas>
+  <div id="status">Use arrow keys to move</div>
+  <div id="win-msg"></div>
+  <div>
+    <button id="next-btn"    class="gbtn primary" style="display:none">Next Level →</button>
+    <button id="restart-btn" class="gbtn">Restart Level</button>
+    <button id="shop-btn"    class="gbtn shopbtn">🛒 Shop</button>
+    <button id="reset-btn"   class="gbtn">Reset Progress</button>
+    <button id="home-btn"    class="gbtn" style="display:none">Play Again from Level 1</button>
+  </div>
+  <div id="shop-panel">
+    <h3>🛒 Shop</h3>
+    <div id="shop-msg"></div>
+    <div id="shop-items"></div>
+    <button id="close-shop" class="gbtn">Close Shop</button>
+  </div>
+  <div id="key-hint">Arrow keys to move · SPACE = magic hat teleport · Click the maze first if keys don't respond</div>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  PASSWORD GATE
+// ══════════════════════════════════════════
+const CORRECT_PW = 'oisinmazeyclub';
+
+function checkPassword() {
+  const val = document.getElementById('pw-input').value.trim();
+  if (val === CORRECT_PW) {
+    document.getElementById('password-screen').style.display = 'none';
+    document.getElementById('game-screen').style.display = 'block';
+    initGame();
+  } else {
+    document.getElementById('pw-error').textContent = 'Oops! Wrong password. Try again!';
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-input').focus();
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('pw-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkPassword();
+  });
+});
+
+// ══════════════════════════════════════════
+//  GAME
+// ══════════════════════════════════════════
+function initGame() {
+
+const C = document.getElementById('maze-canvas');
+const X = C.getContext('2d');
+
+// ── localStorage helpers ──
+const LS_PROGRESS  = 'mazey_progress';
+const LS_COINS     = 'mazey_coins';
+const LS_INVENTORY = 'mazey_inventory';
+
+function lsGet(key, fallback) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : fallback; }
+  catch(e) { return fallback; }
+}
+function lsSet(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {}
+}
+
+// ── Game data ──
+const BOTS = {
+  brown:    { name:'Mr Brown',    color:'#8B5A2B', face:'boring'   },
+  seeky:    { name:'Seeky',       color:'#FFD700', face:'cute', jet:true },
+  obvious:  { name:'Mr Obvious',  color:'#dd2222', face:'obvious'  },
+  geoffrey: { name:'Geoffrey',    color:'#F4C45A', face:'giraffe'  },
+  lighty:   { name:'Mr Lighty',   color:'#26A69A', face:'helmet'   },
+  axy:      { name:'Axy',         color:'#ffb3c6', face:'axolotl'  }
+};
+
+const THEMES = {
+  def: { bg:'#1a1a2e', wall:'#4466aa', txt:'#8899cc' },
+  nat: { bg:'#1a3a1a', wall:'#5a8c3a', txt:'#a8d090' },
+  din: { bg:'#1a0d00', wall:'#7a5200', txt:'#d4961a' },
+  und: { bg:'#001428', wall:'#005f8e', txt:'#40b4e5' }
+};
+
+const LEVELS = [
+  { c:20,r:15, bot:'brown',    desc:'Find the gold star!',                      feat:[],            th:'def' },
+  { c:24,r:18, bot:'geoffrey', desc:'Bigger maze, trickier paths!',              feat:[],            th:'def' },
+  { c:22,r:16, bot:'obvious',  desc:'Beware the trap doors!',                   feat:['traps'],     th:'def' },
+  { c:22,r:16, bot:'lighty',   desc:'Find the cheese on your way!',             feat:['cheese'],    th:'def' },
+  { c:22,r:16, bot:'seeky',    desc:'Collect keys to open doors!',              feat:['keys'],      th:'def' },
+  { c:22,r:16, bot:'brown',    desc:'Dodge the octopus!',                       feat:['octopus'],   th:'def' },
+  { c:22,r:16, bot:'geoffrey', desc:'Find the rose in the forest!',             feat:['rose'],      th:'nat' },
+  { c:24,r:18, bot:'axy',      desc:'Axy collects 5 coins!',                    feat:['bigcoins'],  th:'def' },
+  { c:22,r:16, bot:'lighty',   desc:'Collect all dino bones to open the gate!', feat:['dinos'],     th:'din' },
+  { c:22,r:16, bot:'seeky',    desc:'Find treasure in the deep!',               feat:['underwater'],th:'und' },
+  { c:24,r:18, bot:'geoffrey', desc:'Tag all 3 chickens to open the gate!',     feat:['chickens'],  th:'def' }
+];
+
+const SHOP = [
+  { id:'duck',         name:'Duck Hat',         icon:'🦆', price:4,  type:'hat',        desc:'Coins look like grapes — same value, more fun!'  },
+  { id:'guitar',       name:'Guitar Hat',        icon:'🎸', price:7,  type:'hat',        desc:'Every coin you collect counts double'             },
+  { id:'obsidian',     name:'Obsidian Flame Hat',icon:'🔥', price:9,  type:'hat',        desc:'Trap doors cannot hurt you'                      },
+  { id:'invisibility', name:'Invisibility Hat',  icon:'👻', price:11, type:'hat',        desc:'Octopus completely loses track of you'            },
+  { id:'zoomey',       name:'Zoomey Hat',        icon:'⚡', price:14, type:'hat',        desc:'Move 3 squares per arrow press'                  },
+  { id:'magic',        name:'Magic Hat',         icon:'🪄', price:18, type:'hat',        desc:'Press SPACE then arrow to teleport 10 squares!'  },
+  { id:'booster',      name:'Booster Rockets',   icon:'🚀', price:5,  type:'consumable', desc:'2 extra squares per press for 10 presses'        },
+  { id:'food',         name:'Food',              icon:'🍎', price:3,  type:'consumable', desc:'Freezes the octopus for 6 seconds'               }
+];
+
+// ── State ──
+let hi         = lsGet(LS_PROGRESS,  0);
+let coinBal    = lsGet(LS_COINS,     0);
+let inv        = { hats:[], boosters:0, food:0, equippedHat:null, ...lsGet(LS_INVENTORY, {}) };
+let cur        = Math.min(hi, LEVELS.length - 1);
+let won        = false, playerPos, ld = {};
+let octIv      = null, octTick = 0;
+let boostLeft  = 0, frozenUntil = 0, teleMode = false;
+
+function saveProgress(l) { if(l > hi){ hi = l; lsSet(LS_PROGRESS, hi); refreshSel(); } }
+function saveCoins()     { lsSet(LS_COINS, coinBal); }
+function saveInv()       { lsSet(LS_INVENTORY, inv); }
+
+// ── Maze building ──
+function buildMaze(cols, rows) {
+  const m = Array.from({length:rows}, () => Array.from({length:cols}, () => ({r:true, d:true})));
+  const v = Array.from({length:rows}, () => Array(cols).fill(false));
+  const s = [[0,0]]; v[0][0] = true;
+  while(s.length) {
+    const [c,r] = s[s.length-1];
+    const ds = [[1,0],[0,1],[-1,0],[0,-1]].sort(() => Math.random()-.5);
+    let mv = false;
+    for(const [dc,dr] of ds) {
+      const nc=c+dc, nr=r+dr;
+      if(nc>=0&&nc<cols&&nr>=0&&nr<rows&&!v[nr][nc]) {
+        if(dc===1)m[r][c].r=false; if(dc===-1)m[r][nc].r=false;
+        if(dr===1)m[r][c].d=false; if(dr===-1)m[nr][c].d=false;
+        v[nr][nc]=true; s.push([nc,nr]); mv=true; break;
+      }
+    }
+    if(!mv) s.pop();
+  }
+  return m;
+}
+
+function nbrs(maze, c, r, cols, rows) {
+  const n = [];
+  if(c<cols-1 && !maze[r][c].r)   n.push([c+1, r]);
+  if(c>0      && !maze[r][c-1].r) n.push([c-1, r]);
+  if(r<rows-1 && !maze[r][c].d)   n.push([c, r+1]);
+  if(r>0      && !maze[r-1][c].d) n.push([c, r-1]);
+  return n;
+}
+
+function bfs(maze, cols, rows, start, end) {
+  const q = [[start.c, start.r]], par = {}, key = (c,r) => `${c},${r}`;
+  par[key(start.c, start.r)] = null;
+  while(q.length) {
+    const [c,r] = q.shift();
+    if(c===end.c && r===end.r) {
+      const path = []; let k = key(c,r);
+      while(k) { const [pc,pr]=k.split(',').map(Number); path.unshift({c:pc,r:pr}); const p=par[k]; k=p?key(p[0],p[1]):null; }
+      return path;
+    }
+    for(const [nc,nr] of nbrs(maze,c,r,cols,rows)) { const nk=key(nc,nr); if(!(nk in par)){par[nk]=[c,r];q.push([nc,nr]);} }
+  }
+  return null;
+}
+
+function offPath(maze, cols, rows, ps) {
+  const o = [];
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) {
+    const k=`${c},${r}`;
+    if(!ps.has(k) && !(c===0&&r===0) && !(c===cols-1&&r===rows-1)) o.push({c,r});
+  }
+  return o;
+}
+
+// ── Octopus ──
+function octNext() {
+  const o = ld.octopus, moves = nbrs(ld.maze, o.c, o.r, ld.cols, ld.rows);
+  if(!moves.length) return o;
+  if(inv.equippedHat==='invisibility' || Math.random()<0.4) {
+    const f = moves.filter(([c,r]) => !(c===ld.octPrev.c && r===ld.octPrev.r));
+    const pool = f.length ? f : moves, p = pool[Math.floor(Math.random()*pool.length)];
+    return {c:p[0], r:p[1]};
+  }
+  const p = bfs(ld.maze, ld.cols, ld.rows, o, playerPos);
+  return p && p.length>1 ? p[1] : o;
+}
+function stopOct() { if(octIv){ clearInterval(octIv); octIv=null; } }
+function startOct() {
+  stopOct(); octTick = 0;
+  octIv = setInterval(() => {
+    if(won) return;
+    if(Date.now() < frozenUntil){ drawAll(); return; }
+    octTick++;
+    if(octTick%2 !== 0){ drawAll(); return; }
+    const nx = octNext();
+    ld.octPrev = ld.octopus; ld.octopus = nx; drawAll();
+    if(nx.c===playerPos.c && nx.r===playerPos.r) {
+      stopOct(); ld.caught = true;
+      document.getElementById('status').textContent = 'The octopus caught you! Try again.';
+      drawAll(); setTimeout(() => { if(ld.caught) setupLevel(); }, 1500);
+    }
+  }, 450);
+}
+
+// ── Setup level ──
+function setupLevel() {
+  stopOct(); boostLeft=0; frozenUntil=0; teleMode=false;
+  const lv = LEVELS[cur];
+  const t  = Math.min(Math.floor(640/lv.c), Math.floor(480/lv.r));
+  const maze = buildMaze(lv.c, lv.r);
+  const path = bfs(maze, lv.c, lv.r, {c:0,r:0}, {c:lv.c-1,r:lv.r-1});
+  const ps   = new Set(path.map(p => `${p.c},${p.r}`));
+
+  ld = { cols:lv.c, rows:lv.r, tile:t, bot:lv.bot, feat:lv.feat,
+         th:THEMES[lv.th]||THEMES.def, maze, path, ps,
+         cheeseFound:false, cheeseBubble:false, roseFound:false, roseBubble:false,
+         keysCol:[], doorsOpen:[], coinsCol:[], coins:[],
+         showTrap:0, trapMsg:'', caught:false,
+         bones:null, bonesCol:[], dinoWall:null,
+         treasures:null, treasuresOpen:[],
+         chickenPos:null, chickensTagged:0, chickenWall:null };
+
+  C.width  = lv.c * t;
+  C.height = lv.r * t;
+  const avoid = [];
+
+  if(lv.feat.includes('traps')) {
+    const op = offPath(maze,lv.c,lv.r,ps).sort(()=>Math.random()-.5);
+    ld.trapFinish = op[0] || path[Math.floor(path.length/3)];
+    ld.trapStart  = op[1] || path[Math.floor(2*path.length/3)];
+  }
+  if(lv.feat.includes('cheese')) {
+    const op = offPath(maze,lv.c,lv.r,ps);
+    ld.cheese = op.length ? op[Math.floor(Math.random()*op.length)] : path[Math.floor(path.length/2)];
+    avoid.push(ld.cheese);
+  }
+  if(lv.feat.includes('rose'))  { ld.rose = path[Math.floor(path.length/2)]; avoid.push(ld.rose); }
+  if(lv.feat.includes('keys'))  {
+    const pL = path.length;
+    ld.key1=path[Math.floor(pL*.15)]; ld.door1=path[Math.floor(pL*.35)];
+    ld.key2=path[Math.floor(pL*.55)]; ld.door2=path[Math.floor(pL*.78)];
+    [ld.key1,ld.key2,ld.door1,ld.door2].forEach(x => avoid.push(x));
+  }
+  if(lv.feat.includes('octopus')) {
+    const op = offPath(maze,lv.c,lv.r,ps).filter(c => (Math.abs(c.c)+Math.abs(c.r))>=5);
+    ld.octopus  = (op.length ? op : offPath(maze,lv.c,lv.r,ps))[Math.floor(Math.random()*Math.max(op.length,1))];
+    ld.octPrev  = {...ld.octopus};
+  }
+  if(lv.feat.includes('dinos')) {
+    const wall = path[path.length-2]; ld.dinoWall = wall; avoid.push(wall);
+    const op = offPath(maze,lv.c,lv.r,ps).sort(()=>Math.random()-.5);
+    const pm = path.slice(3,path.length-4).sort(()=>Math.random()-.5);
+    const bones = [...op.slice(0,2)];
+    for(const b of pm.slice(0,2)) if(!bones.some(x=>x.c===b.c&&x.r===b.r)) bones.push(b);
+    ld.bones = bones.slice(0,4); ld.bonesCol = []; ld.bones.forEach(b => avoid.push(b));
+  }
+  if(lv.feat.includes('underwater')) {
+    const op = offPath(maze,lv.c,lv.r,ps).sort(()=>Math.random()-.5);
+    const pm = path.slice(Math.floor(path.length*.2),Math.floor(path.length*.8)).sort(()=>Math.random()-.5);
+    const tres = [];
+    if(op.length)   tres.push(op[0]);
+    if(pm.length)   tres.push(pm[0]);
+    if(op.length>1) tres.push(op[1]);
+    ld.treasures = tres.slice(0,3); ld.treasuresOpen = []; ld.treasures.forEach(t => avoid.push(t));
+  }
+  if(lv.feat.includes('chickens')) {
+    const wall = path[path.length-2]; ld.chickenWall = wall; avoid.push(wall);
+    const pL = path.length;
+    ld.chickenPos = [path[Math.floor(pL*.25)], path[Math.floor(pL*.52)], path[Math.floor(pL*.78)]];
+    ld.chickensTagged = 0; ld.chickenPos.forEach(c => avoid.push(c));
+  }
+
+  // Coins on every level
+  const isBig = lv.feat.includes('bigcoins'), count = isBig ? 5 : 3;
+  const fracs = isBig ? [.1,.28,.46,.64,.82] : [.2,.42,.65,.32,.55,.88];
+  const cl = [];
+  for(const f of fracs) {
+    if(cl.length >= count) break;
+    const p = path[Math.floor(path.length*f)];
+    const conflict = avoid.some(a=>a.c===p.c&&a.r===p.r) || cl.some(c=>c.c===p.c&&c.r===p.r)
+                   || (p.c===0&&p.r===0) || (p.c===lv.c-1&&p.r===lv.r-1);
+    if(!conflict) cl.push(p);
+  }
+  ld.coins = cl;
+
+  playerPos = {c:0, r:0}; won = false;
+  document.getElementById('level-title').textContent = `Level ${cur+1}`;
+  document.getElementById('level-desc').textContent  = lv.desc;
+  document.getElementById('bot-name').textContent    = BOTS[lv.bot].name;
+  document.getElementById('win-msg').textContent     = '';
+  document.getElementById('next-btn').style.display  = 'none';
+  document.getElementById('home-btn').style.display  = 'none';
+  document.getElementById('status').textContent      = 'Use arrow keys to move';
+  updLegend(); updCounter(); updUse(); drawAll();
+  if(lv.feat.includes('octopus')) setTimeout(startOct, 1000);
+}
+
+// ── UI helpers ──
+function updCounter() {
+  const el = document.getElementById('lv-counter');
+  const parts = [`Coins: ${ld.coinsCol.length}/${ld.coins.length}`];
+  if(ld.feat.includes('bigcoins')) parts[0] = `Axy's coins: ${ld.coinsCol.length}/${ld.coins.length}`;
+  if(ld.bones)      parts.push(`🦴 Bones: ${ld.bonesCol.length}/${ld.bones.length}`);
+  if(ld.treasures)  parts.push(`💎 Treasure: ${ld.treasuresOpen.length}/${ld.treasures.length}`);
+  if(ld.chickenPos) parts.push(`🐔 Chickens: ${ld.chickensTagged}/3`);
+  el.textContent = parts.join(' · ');
+}
+function updLegend() {
+  const el = document.getElementById('legend');
+  const it = [
+    '<span class="li"><span class="ld" style="background:#FFD700"></span>Goal</span>',
+    '<span class="li"><span class="ld" style="background:#ffd700"></span>Coin</span>'
+  ];
+  if(ld.feat.includes('traps'))     it.push('<span class="li"><span class="ld" style="background:#9c27b0"></span>Trap door</span>');
+  if(ld.feat.includes('cheese'))    it.push('<span class="li"><span class="ld" style="background:#ffc107"></span>Cheese</span>');
+  if(ld.feat.includes('rose'))      it.push('<span class="li"><span class="ld" style="background:#e91e63"></span>Rose</span>');
+  if(ld.feat.includes('keys'))      it.push('<span class="li"><span class="ld" style="background:#00bcd4"></span>Key/Door 1</span>','<span class="li"><span class="ld" style="background:#ff6f00"></span>Key/Door 2</span>');
+  if(ld.feat.includes('octopus'))   it.push('<span class="li"><span class="ld" style="background:#8e44ad"></span>Octopus</span>');
+  if(ld.feat.includes('dinos'))     it.push('<span class="li"><span class="ld" style="background:#a07830"></span>Dino bone</span>');
+  if(ld.feat.includes('underwater'))it.push('<span class="li"><span class="ld" style="background:#ffd700"></span>Treasure (+10!)</span>');
+  if(ld.feat.includes('chickens'))  it.push('<span class="li"><span class="ld" style="background:#fff176"></span>Chicken</span>');
+  el.innerHTML = it.join('');
+}
+function refreshSel() {
+  const s = document.getElementById('level-jump'); s.innerHTML = '';
+  for(let i=0; i<=Math.min(hi,LEVELS.length-1); i++) {
+    const o = document.createElement('option'); o.value = i;
+    o.textContent = `Level ${i+1} (${BOTS[LEVELS[i].bot].name})`;
+    if(i===cur) o.selected = true; s.appendChild(o);
+  }
+}
+function updCoinDisp() { document.getElementById('coin-count').textContent = coinBal; }
+function updInvDisp() {
+  const el = document.getElementById('inv-display'), parts = [];
+  if(inv.equippedHat) { const h = SHOP.find(i=>i.id===inv.equippedHat); parts.push(`Wearing: ${h.icon} ${h.name}`); }
+  else if(inv.hats.length) parts.push(`<span style="color:#556">${inv.hats.length} hat${inv.hats.length>1?'s':''} owned — equip in shop</span>`);
+  if(inv.boosters>0) parts.push(`🚀 x${inv.boosters}`);
+  if(inv.food>0)     parts.push(`🍎 x${inv.food}`);
+  el.innerHTML = parts.length ? parts.join(' · ') : '<span style="color:#556">No items yet — collect coins!</span>';
+}
+function updUse() {
+  const bb = document.getElementById('use-boost'), fb = document.getElementById('use-food');
+  bb.style.display = (inv.boosters>0||boostLeft>0) ? 'inline-block' : 'none';
+  fb.style.display = (inv.food>0||Date.now()<frozenUntil) ? 'inline-block' : 'none';
+  bb.textContent   = boostLeft>0 ? `🚀 Boost Active (${boostLeft})` : `🚀 Use Booster (${inv.boosters})`;
+  const fl = Math.max(0, frozenUntil-Date.now());
+  fb.textContent   = fl>0 ? `❄ Frozen (${Math.ceil(fl/1000)}s)` : `🍎 Use Food (${inv.food})`;
+  bb.disabled = boostLeft>0 || inv.boosters===0;
+  fb.disabled = fl>0 || inv.food===0;
+}
+
+// ── DRAW ──
+function drawAll() {
+  const { cols, rows, tile:t, th } = ld;
+  X.fillStyle = th.bg; X.fillRect(0,0,C.width,C.height);
+  if(ld.feat.includes('rose'))       drawForestBg();
+  if(ld.feat.includes('dinos'))      drawDinoBg();
+  if(ld.feat.includes('underwater')) drawUnderwaterBg();
+
+  X.strokeStyle = th.wall; X.lineWidth = 2;
+  for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) {
+    const x=c*t, y=r*t;
+    if(r===0)         { X.beginPath(); X.moveTo(x,y);    X.lineTo(x+t,y);   X.stroke(); }
+    if(c===0)         { X.beginPath(); X.moveTo(x,y);    X.lineTo(x,y+t);   X.stroke(); }
+    if(ld.maze[r][c].r){ X.beginPath(); X.moveTo(x+t,y);  X.lineTo(x+t,y+t); X.stroke(); }
+    if(ld.maze[r][c].d){ X.beginPath(); X.moveTo(x,y+t);  X.lineTo(x+t,y+t); X.stroke(); }
+  }
+
+  if(ld.feat.includes('traps'))  { drawTrap(ld.trapFinish.c,ld.trapFinish.r); drawTrap(ld.trapStart.c,ld.trapStart.r); }
+  if(ld.feat.includes('cheese') && !ld.cheeseFound) drawCheese(ld.cheese.c,ld.cheese.r);
+  if(ld.feat.includes('rose')   && !ld.roseFound)   drawRose(ld.rose.c,ld.rose.r);
+  if(ld.feat.includes('keys'))   {
+    if(!ld.keysCol.includes(1))   drawKey(ld.key1.c,ld.key1.r,'#00bcd4');
+    if(!ld.keysCol.includes(2))   drawKey(ld.key2.c,ld.key2.r,'#ff6f00');
+    if(!ld.doorsOpen.includes(1)) drawDoor(ld.door1.c,ld.door1.r,'#00bcd4');
+    if(!ld.doorsOpen.includes(2)) drawDoor(ld.door2.c,ld.door2.r,'#ff6f00');
+  }
+  if(ld.bones)      ld.bones.forEach((b,i) => { if(!ld.bonesCol.includes(i))     drawBone(b.c,b.r); });
+  if(ld.treasures)  ld.treasures.forEach((tr,i) => drawTreasure(tr.c,tr.r, ld.treasuresOpen.includes(i)));
+  if(ld.dinoWall    && ld.bonesCol.length < (ld.bones||[]).length) drawDinoWall(ld.dinoWall.c,ld.dinoWall.r);
+  if(ld.chickenPos  && ld.chickensTagged < 3) drawChicken(ld.chickenPos[ld.chickensTagged].c, ld.chickenPos[ld.chickensTagged].r);
+  if(ld.chickenWall && ld.chickensTagged < 3) drawChickenWall(ld.chickenWall.c,ld.chickenWall.r);
+  ld.coins.forEach((coin,i) => { if(!ld.coinsCol.includes(i)) { inv.equippedHat==='duck' ? drawGrape(coin.c,coin.r) : drawCoin(coin.c,coin.r); } });
+
+  const gx=(cols-1)*t+t/2, gy=(rows-1)*t+t/2;
+  X.fillStyle='#FFD700'; X.font=`bold ${t*.7}px sans-serif`; X.textAlign='center'; X.textBaseline='middle'; X.fillText('★',gx,gy);
+  X.font='10px sans-serif'; X.fillStyle=th.txt; X.textAlign='left'; X.textBaseline='top'; X.fillText('START',3,2); X.textAlign='right'; X.fillText('GOAL',C.width-3,C.height-12);
+
+  if(ld.feat.includes('octopus') && ld.octopus) drawOctopus(ld.octopus.c,ld.octopus.r);
+  if(!won && !ld.caught) drawBot(playerPos.c,playerPos.r);
+
+  if(teleMode) {
+    const bx=playerPos.c*t+t/2, by=playerPos.r*t+t/2;
+    X.fillStyle='#cc44ff'; X.font=`${t*.35}px sans-serif`; X.textAlign='center'; X.textBaseline='middle';
+    for(let i=0;i<4;i++) { const a=i*Math.PI/2+Date.now()/400; X.fillText('✦',bx+Math.cos(a)*t*.75,by+Math.sin(a)*t*.75); }
+    X.fillStyle='rgba(180,0,255,.8)'; X.beginPath(); X.roundRect(C.width/2-95,8,190,22,5); X.fill();
+    X.fillStyle='#fff'; X.font='bold 12px sans-serif'; X.textAlign='center'; X.textBaseline='middle'; X.fillText('✨ Teleport ready! Pick direction',C.width/2,20);
+  }
+  if(ld.cheeseBubble) drawBubble(ld.cheese.c,ld.cheese.r,['"Thank you for finding me','in the hike and seek!"'],'#ff8f00');
+  if(ld.roseBubble)   drawBubble(ld.rose.c,ld.rose.r,['"Thanks for finding me','in Hide and Seek!"'],'#e91e63');
+  if(ld.showTrap>0)   drawTrapMsg();
+  if(boostLeft>0)     { X.fillStyle='rgba(0,188,212,.85)'; X.beginPath(); X.roundRect(8,8,90,22,5); X.fill(); X.fillStyle='#fff'; X.font='bold 12px sans-serif'; X.textAlign='left'; X.textBaseline='middle'; X.fillText(`🚀 Boost x${boostLeft}`,14,20); }
+  if(Date.now()<frozenUntil) { const l=Math.max(0,Math.ceil((frozenUntil-Date.now())/1000)); X.fillStyle='rgba(33,150,243,.85)'; X.beginPath(); X.roundRect(C.width-100,8,92,22,5); X.fill(); X.fillStyle='#fff'; X.font='bold 12px sans-serif'; X.textAlign='left'; X.textBaseline='middle'; X.fillText(`❄ Frozen ${l}s`,C.width-94,20); }
+}
+
+function drawForestBg()    { X.fillStyle='rgba(60,120,40,.15)'; for(let i=0;i<30;i++) { const x=(i*73+13)%C.width,y=(i*51+27)%C.height; X.beginPath();X.arc(x,y,8+(i%4)*2,0,Math.PI*2);X.fill(); } }
+function drawDinoBg()      { X.fillStyle='rgba(100,70,10,.12)'; for(let i=0;i<20;i++) { const x=(i*91+47)%C.width,y=(i*67+31)%C.height; X.beginPath();X.arc(x,y,12+(i%3)*6,0,Math.PI*2);X.fill(); } }
+function drawUnderwaterBg(){ const now=Date.now()/2000; X.fillStyle='rgba(0,180,255,.1)'; for(let i=0;i<15;i++) { const x=(i*87+12)%C.width,y=(i*61+now*30)%C.height; X.beginPath();X.arc(x,y,3+(i%4)*2,0,Math.PI*2);X.fill(); } }
+
+function drawTrap(c,r)     { const t=ld.tile,x=c*t+t/2,y=r*t+t/2; X.fillStyle='#9c27b0';X.beginPath();X.arc(x,y,t*.32,0,Math.PI*2);X.fill();X.strokeStyle='#4a148c';X.lineWidth=2;X.stroke();X.fillStyle='#fff';X.font=`bold ${t*.4}px sans-serif`;X.textAlign='center';X.textBaseline='middle';X.fillText('?',x,y); }
+function drawCheese(c,r)   { const t=ld.tile,x=c*t+t/2,y=r*t+t/2,s=t*.6; X.fillStyle='#ffc107';X.beginPath();X.moveTo(x-s/2,y+s/3);X.lineTo(x+s/2,y+s/3);X.lineTo(x+s/3,y-s/3);X.lineTo(x-s/2,y+s/3);X.closePath();X.fill();X.strokeStyle='#ff8f00';X.lineWidth=1.5;X.stroke();X.fillStyle='#ff8f00';[[-s*.15,s*.1],[s*.05,s*.15],[s*.15,-s*.05]].forEach(([dx,dy])=>{X.beginPath();X.arc(x+dx,y+dy,t*.04,0,Math.PI*2);X.fill();}); }
+function drawRose(c,r)     { const t=ld.tile,x=c*t+t/2,y=r*t+t/2; X.fillStyle='#2e7d32';X.fillRect(x-1,y,2,t*.3);X.fillStyle='#388e3c';X.beginPath();X.ellipse(x-t*.1,y+t*.18,t*.08,t*.05,-.5,0,Math.PI*2);X.fill();X.beginPath();X.ellipse(x+t*.1,y+t*.22,t*.08,t*.05,.5,0,Math.PI*2);X.fill();X.fillStyle='#c2185b';X.beginPath();X.arc(x,y-t*.05,t*.18,0,Math.PI*2);X.fill();X.fillStyle='#e91e63';[[-t*.06,-t*.08],[t*.06,-t*.06],[0,-t*.12]].forEach(([dx,dy])=>{X.beginPath();X.arc(x+dx,y+dy,t*.1,0,Math.PI*2);X.fill();});X.fillStyle='#f48fb1';X.beginPath();X.arc(x,y-t*.05,t*.05,0,Math.PI*2);X.fill(); }
+function drawKey(c,r,col)  { const t=ld.tile,x=c*t+t/2,y=r*t+t/2; X.fillStyle=col;X.beginPath();X.arc(x-t*.15,y,t*.18,0,Math.PI*2);X.fill();X.fillStyle=ld.th.bg;X.beginPath();X.arc(x-t*.15,y,t*.07,0,Math.PI*2);X.fill();X.fillStyle=col;X.fillRect(x-t*.02,y-t*.05,t*.35,t*.1);X.fillRect(x+t*.2,y-t*.05,t*.06,t*.18);X.fillRect(x+t*.1,y-t*.05,t*.06,t*.14); }
+function drawDoor(c,r,col) { const t=ld.tile,x=c*t,y=r*t; X.fillStyle='#795548';X.fillRect(x+t*.15,y+t*.15,t*.7,t*.7);X.strokeStyle=col;X.lineWidth=3;X.strokeRect(x+t*.15,y+t*.15,t*.7,t*.7);X.fillStyle=col;X.beginPath();X.arc(x+t*.7,y+t*.5,t*.05,0,Math.PI*2);X.fill(); }
+function drawCoin(c,r)     { const t=ld.tile,x=c*t+t/2,y=r*t+t/2; X.fillStyle='#ffd700';X.beginPath();X.arc(x,y,t*.22,0,Math.PI*2);X.fill();X.strokeStyle='#b8860b';X.lineWidth=1.5;X.stroke();X.fillStyle='#b8860b';X.font=`bold ${t*.28}px sans-serif`;X.textAlign='center';X.textBaseline='middle';X.fillText('$',x,y); }
+function drawGrape(c,r)    { const t=ld.tile,x=c*t+t/2,y=r*t+t/2; X.fillStyle='#6a0dad';[[-t*.12,t*.06],[t*.12,t*.06],[0,-t*.08]].forEach(([dx,dy])=>{X.beginPath();X.arc(x+dx,y+dy,t*.15,0,Math.PI*2);X.fill();});X.fillStyle='rgba(255,255,255,.35)';X.beginPath();X.arc(x-t*.15,y+t*.02,t*.06,0,Math.PI*2);X.fill();X.strokeStyle='#4a7c3f';X.lineWidth=1.5;X.beginPath();X.moveTo(x,y-t*.22);X.lineTo(x+t*.1,y-t*.35);X.stroke();X.fillStyle='#4a7c3f';X.beginPath();X.ellipse(x+t*.14,y-t*.38,t*.09,t*.06,-.5,0,Math.PI*2);X.fill(); }
+function drawBone(c,r)     { const t=ld.tile,x=c*t+t/2,y=r*t+t/2,s=t*.35; X.fillStyle='#d4c5a9';X.beginPath();X.arc(x-s*.5,y,s*.2,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.5,y,s*.2,0,Math.PI*2);X.fill();X.fillRect(x-s*.38,y-s*.1,s*.76,s*.2);X.strokeStyle='#a0927a';X.lineWidth=1;X.beginPath();X.arc(x-s*.5,y,s*.2,0,Math.PI*2);X.stroke();X.beginPath();X.arc(x+s*.5,y,s*.2,0,Math.PI*2);X.stroke(); }
+function drawTreasure(c,r,opened) { const t=ld.tile,x=c*t+t/2,y=r*t+t/2,s=t*.7; if(!opened){X.fillStyle='#795548';X.fillRect(x-s/2,y-s*.15,s,s*.5);X.fillStyle='#8d6e63';X.fillRect(x-s/2,y-s*.28,s,s*.14);X.beginPath();X.ellipse(x,y-s*.28,s/2,s*.1,0,0,Math.PI*2);X.fill();X.strokeStyle='#ffd700';X.lineWidth=2;X.strokeRect(x-s/2,y-s*.15,s,s*.5);X.fillStyle='#ffd700';X.fillRect(x-s*.06,y-s*.06,s*.12,s*.12);X.font=`bold ${t*.22}px sans-serif`;X.textAlign='center';X.textBaseline='middle';X.fillText('+10',x,y+s*.2);}else{X.fillStyle='#5d4037';X.fillRect(x-s/2,y-s*.1,s,s*.45);X.font=`${t*.55}px sans-serif`;X.textAlign='center';X.textBaseline='middle';X.fillText('💰',x,y+s*.12);} }
+function drawDinoWall(c,r) { const t=ld.tile,x=c*t,y=r*t; X.fillStyle='#3d2800';X.fillRect(x,y,t,t);X.strokeStyle='#2a1800';X.lineWidth=1;[[0,0],[t/2,0],[0,t/2],[t/2,t/2]].forEach(([rx,ry])=>X.strokeRect(x+rx+1,y+ry+1,t/2-2,t/2-2));X.font=`${t*.55}px sans-serif`;X.textAlign='center';X.textBaseline='middle';X.fillText('🦴',x+t/2,y+t/2);X.fillStyle='#ff6b6b';X.font=`bold ${t*.28}px sans-serif`;X.fillText(`${ld.bonesCol.length}/${(ld.bones||[]).length}`,x+t/2,y+t*.85); }
+function drawChicken(c,r)  { const t=ld.tile,x=c*t+t/2,y=r*t+t/2,s=t*.42; X.fillStyle='#f5f5dc';X.beginPath();X.ellipse(x-s*.05,y+s*.1,s*.5,s*.38,0,0,Math.PI*2);X.fill();X.fillStyle='#e0e0b0';X.beginPath();X.ellipse(x+s*.15,y+s*.08,s*.25,s*.18,-.3,0,Math.PI*2);X.fill();X.fillStyle='#f5f5dc';X.beginPath();X.arc(x+s*.35,y-s*.22,s*.22,0,Math.PI*2);X.fill();X.fillStyle='#cc0000';[[-s*.1,-s*.5],[0,-s*.53],[s*.1,-s*.48]].forEach(([dx,dy])=>{X.beginPath();X.arc(x+s*.35+dx,y+dy,s*.08,0,Math.PI*2);X.fill();});X.fillStyle='#ff8c00';X.beginPath();X.moveTo(x+s*.55,y-s*.22);X.lineTo(x+s*.72,y-s*.17);X.lineTo(x+s*.55,y-s*.13);X.closePath();X.fill();X.fillStyle='#1a1a1a';X.beginPath();X.arc(x+s*.44,y-s*.26,s*.05,0,Math.PI*2);X.fill();X.strokeStyle='#ff8c00';X.lineWidth=1.5;X.beginPath();X.moveTo(x-s*.05,y+s*.42);X.lineTo(x-s*.05,y+s*.65);X.moveTo(x-s*.05,y+s*.65);X.lineTo(x-s*.18,y+s*.76);X.moveTo(x+s*.15,y+s*.42);X.lineTo(x+s*.15,y+s*.65);X.moveTo(x+s*.15,y+s*.65);X.lineTo(x+s*.28,y+s*.76);X.stroke(); }
+function drawChickenWall(c,r){ const t=ld.tile,x=c*t,y=r*t; X.fillStyle='#8B6914';[t*.08,t*.43,t*.72].forEach(px=>X.fillRect(x+px,y,t*.12,t));X.fillRect(x,y+t*.22,t,t*.1);X.fillRect(x,y+t*.58,t,t*.1);X.font=`${t*.45}px sans-serif`;X.textAlign='center';X.textBaseline='middle';X.fillText('🐔',x+t/2,y+t/2);X.fillStyle='#ff6b6b';X.font=`bold ${t*.28}px sans-serif`;X.fillText(`${ld.chickensTagged}/3`,x+t/2,y+t*.88); }
+function drawOctopus(c,r)  { const t=ld.tile,x=c*t+t/2,y=r*t+t/2,frz=Date.now()<frozenUntil; X.fillStyle=frz?'#7ec5e8':'#8e44ad';X.beginPath();X.arc(x,y-t*.05,t*.3,0,Math.PI*2);X.fill();X.fillStyle=frz?'#5fa5cf':'#7d3c98';for(let i=0;i<6;i++){const a=(i/6)*Math.PI-Math.PI/2,tx=x+Math.cos(a)*t*.28,ty=y+t*.15+(frz?0:Math.abs(Math.sin(a*2+Date.now()/300))*t*.08);X.beginPath();X.ellipse(tx,ty,t*.06,t*.12,0,0,Math.PI*2);X.fill();}X.fillStyle='white';X.beginPath();X.arc(x-t*.1,y-t*.08,t*.07,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+t*.1,y-t*.08,t*.07,0,Math.PI*2);X.fill();X.fillStyle='#1a1a1a';X.beginPath();X.arc(x-t*.08,y-t*.07,t*.04,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+t*.12,y-t*.07,t*.04,0,Math.PI*2);X.fill();if(frz){X.strokeStyle='#b3e0ff';X.lineWidth=2;X.beginPath();X.moveTo(x-t*.25,y-t*.25);X.lineTo(x+t*.25,y+t*.25);X.stroke();X.beginPath();X.moveTo(x+t*.25,y-t*.25);X.lineTo(x-t*.25,y+t*.25);X.stroke();} }
+function drawBubble(c,r,lines,bc) { const t=ld.tile,x=c*t+t/2,y=r*t; X.font='bold 12px sans-serif';const mw=Math.max(...lines.map(l=>X.measureText(l).width));const px=10,py=8,bw=mw+px*2,bh=lines.length*16+py*2;let bx=x-bw/2,by=y-bh-10;if(by<5)by=y+t+5;if(bx<5)bx=5;if(bx+bw>C.width-5)bx=C.width-bw-5;X.fillStyle='#fff';X.strokeStyle=bc;X.lineWidth=2;X.beginPath();X.roundRect(bx,by,bw,bh,8);X.fill();X.stroke();X.fillStyle='#5d4037';X.textAlign='center';X.textBaseline='top';lines.forEach((l,i)=>X.fillText(l,bx+bw/2,by+py+i*16)); }
+function drawTrapMsg()     { X.fillStyle='rgba(0,0,0,.7)';const w=280,h=50,x=(C.width-w)/2,y=C.height/2-25;X.beginPath();X.roundRect(x,y,w,h,8);X.fill();X.fillStyle='#fff';X.font='bold 16px sans-serif';X.textAlign='center';X.textBaseline='middle';X.fillText(ld.trapMsg,C.width/2,C.height/2); }
+
+function drawHatOverlay(x, by, s) {
+  const h = inv.equippedHat;
+  if(h==='obsidian') {
+    X.fillStyle='#1a0d2e';X.beginPath();X.ellipse(x,by-s*.05,s*.4,s*.14,0,0,Math.PI*2);X.fill();X.fillStyle='#0a0515';X.fillRect(x-s*.3,by-s*.05,s*.6,s*.1);X.strokeStyle='#9b30c0';X.lineWidth=1.5;X.beginPath();X.moveTo(x-s*.15,by-s*.05);X.lineTo(x-s*.05,by+s*.05);X.stroke();X.beginPath();X.moveTo(x+s*.1,by-s*.1);X.lineTo(x+s*.15,by+s*.02);X.stroke();const fl=Math.sin(Date.now()/150)*s*.04;X.fillStyle='rgba(155,48,192,.9)';X.beginPath();X.moveTo(x-s*.2,by-s*.05);X.quadraticCurveTo(x-s*.25,by-s*.28-fl,x-s*.1,by-s*.38);X.quadraticCurveTo(x,by-s*.33,x,by-s*.48-fl);X.quadraticCurveTo(x+s*.1,by-s*.33,x+s*.15,by-s*.38);X.quadraticCurveTo(x+s*.25,by-s*.28+fl,x+s*.2,by-s*.05);X.closePath();X.fill();X.fillStyle='rgba(220,150,255,.65)';X.beginPath();X.moveTo(x-s*.07,by-s*.05);X.quadraticCurveTo(x-s*.04,by-s*.18,x,by-s*.28-fl);X.quadraticCurveTo(x+s*.04,by-s*.18,x+s*.07,by-s*.05);X.closePath();X.fill();
+  } else if(h==='guitar') {
+    X.fillStyle='#2c1810';X.fillRect(x-s*.35,by-s*.02,s*.7,s*.06);X.beginPath();X.ellipse(x,by-s*.12,s*.2,s*.12,0,0,Math.PI*2);X.fill();X.fillStyle='#d4691f';X.beginPath();X.ellipse(x-s*.07,by-s*.35,s*.1,s*.12,.2,0,Math.PI*2);X.fill();X.fillStyle='#8b3a0e';X.beginPath();X.arc(x-s*.07,by-s*.33,s*.04,0,Math.PI*2);X.fill();X.fillStyle='#5d2906';X.fillRect(x-s*.02,by-s*.56,s*.05,s*.23);X.fillStyle='#aaa';X.fillRect(x-s*.05,by-s*.59,s*.1,s*.04);
+  } else if(h==='duck') {
+    X.fillStyle='#FFD700';X.beginPath();X.ellipse(x-s*.05,by-s*.18,s*.2,s*.14,0,0,Math.PI*2);X.fill();X.beginPath();X.ellipse(x+s*.1,by-s*.3,s*.13,s*.12,.2,0,Math.PI*2);X.fill();X.fillStyle='#ff8c00';X.beginPath();X.moveTo(x+s*.22,by-s*.3);X.lineTo(x+s*.34,by-s*.26);X.lineTo(x+s*.22,by-s*.22);X.closePath();X.fill();X.fillStyle='#1a1a1a';X.beginPath();X.arc(x+s*.16,by-s*.33,s*.03,0,Math.PI*2);X.fill();
+  } else if(h==='zoomey') {
+    X.fillStyle='#bbb';X.beginPath();X.ellipse(x,by-s*.12,s*.44,s*.18,0,0,Math.PI*2);X.fill();X.fillStyle='#888';X.beginPath();X.ellipse(x,by-s*.15,s*.36,s*.1,0,0,Math.PI*2);X.fill();X.strokeStyle='#00e5ff';X.lineWidth=1.5;for(let i=0;i<3;i++){X.beginPath();X.moveTo(x-s*(.48+i*.1),by-s*(.08+i*.04));X.lineTo(x-s*.15,by-s*(.08+i*.04));X.stroke();}X.fillStyle='#00e5ff';X.font=`${s*.2}px sans-serif`;X.textAlign='center';X.textBaseline='middle';X.fillText('⚡',x+s*.15,by-s*.13);
+  } else if(h==='magic') {
+    X.fillStyle='#1a0050';X.beginPath();X.ellipse(x,by-s*.04,s*.44,s*.1,0,0,Math.PI*2);X.fill();X.beginPath();X.moveTo(x-s*.3,by-s*.04);X.lineTo(x,by-s*.65);X.lineTo(x+s*.3,by-s*.04);X.closePath();X.fill();X.fillStyle='#ffd700';X.font=`${s*.18}px sans-serif`;X.textAlign='center';X.textBaseline='middle';X.fillText('★',x-s*.08,by-s*.33);X.fillText('✦',x+s*.06,by-s*.5);X.fillText('★',x-s*.02,by-s*.2);
+  }
+}
+
+function drawBot(c, r) {
+  const t=ld.tile, x=c*t+t/2, y=r*t+t/2;
+  const b=BOTS[ld.bot], s=t*.72, bx=x-s/2, by=y-s/2;
+  if(teleMode) { X.shadowColor='#cc44ff'; X.shadowBlur=10; }
+  if(inv.equippedHat==='invisibility') {
+    X.strokeStyle='#aabbcc';X.setLineDash([4,3]);X.lineWidth=2;
+    if(b.face==='axolotl'){X.beginPath();X.ellipse(x,y+s*.05,s*.42,s*.32,0,0,Math.PI*2);X.stroke();}
+    else X.strokeRect(bx,by,s,s);
+    X.setLineDash([]);X.fillStyle='#aabbcc';X.beginPath();X.arc(x-s*.15,y,s*.05,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.15,y,s*.05,0,Math.PI*2);X.fill();
+    X.shadowBlur=0; drawHatOverlay(x,by,s); return;
+  }
+  if(b.face==='axolotl') {
+    X.fillStyle='#ffb3c6';X.beginPath();X.ellipse(x,y+s*.05,s*.42,s*.32,0,0,Math.PI*2);X.fill();X.fillStyle='#ff6b8a';[[-s*.35,-s*.2],[-s*.28,-s*.3],[s*.28,-s*.3],[s*.35,-s*.2]].forEach(([dx,dy])=>{X.beginPath();X.arc(x+dx,y+dy,s*.06,0,Math.PI*2);X.fill();});X.fillStyle='white';X.beginPath();X.arc(x-s*.13,y-s*.05,s*.09,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.13,y-s*.05,s*.09,0,Math.PI*2);X.fill();X.fillStyle='#1a1a1a';X.beginPath();X.arc(x-s*.12,y-s*.05,s*.05,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.14,y-s*.05,s*.05,0,Math.PI*2);X.fill();X.strokeStyle='#c2185b';X.lineWidth=1.5;X.beginPath();X.arc(x,y+s*.1,s*.1,.1,Math.PI-.1);X.stroke();
+    X.shadowBlur=0; drawHatOverlay(x,by,s); return;
+  }
+  if(b.jet) { X.fillStyle='#888';X.fillRect(x+s/2-2,by+4,6,s*.55);X.fillStyle='#ff8c00';X.beginPath();X.ellipse(x+s/2+1,by+s*.6+4,3,5,0,0,Math.PI*2);X.fill(); }
+  if(b.face==='obvious')  { X.fillStyle='#dd2222';X.fillRect(bx,by,s/2,s);X.fillStyle='#2255dd';X.fillRect(bx+s/2,by,s/2,s); }
+  else if(b.face==='giraffe') {
+    X.fillStyle='#F4C45A';X.fillRect(bx,by,s,s);X.fillStyle='#8B4513';
+    [{ox:.15,oy:.1,rx:.16,ry:.12},{ox:.6,oy:.08,rx:.13,ry:.16},{ox:.7,oy:.55,rx:.14,ry:.11},{ox:.15,oy:.6,rx:.13,ry:.16},{ox:.45,oy:.7,rx:.16,ry:.12}].forEach(sp=>{X.beginPath();X.ellipse(bx+sp.ox*s,by+sp.oy*s,sp.rx*s,sp.ry*s,0,0,Math.PI*2);X.fill();});
+  } else { X.fillStyle=b.color; X.fillRect(bx,by,s,s); }
+  if(b.face==='helmet') {
+    X.fillStyle='#7B1FA2';X.beginPath();X.ellipse(x,by+s*.32,s*.55,s*.45,0,0,Math.PI*2);X.fill();X.fillStyle='#FFD600';X.fillRect(bx+s*.1,by+s*.3,s*.8,s*.25);X.fillStyle='white';X.beginPath();X.arc(x-s*.18,by+s*.42,s*.09,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.18,by+s*.42,s*.09,0,Math.PI*2);X.fill();X.fillStyle='#1a1a1a';X.beginPath();X.arc(x-s*.17,by+s*.43,s*.05,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.19,by+s*.43,s*.05,0,Math.PI*2);X.fill();
+  } else {
+    const ey=by+s*.42;
+    X.fillStyle='white';X.beginPath();X.arc(x-s*.2,ey,s*.13,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.2,ey,s*.13,0,Math.PI*2);X.fill();X.fillStyle='#1a1a1a';X.beginPath();X.arc(x-s*.18,ey,s*.07,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.22,ey,s*.07,0,Math.PI*2);X.fill();
+    if(b.face==='boring')   { X.strokeStyle='#5a3010';X.lineWidth=1.5;X.beginPath();X.moveTo(x-s*.22,ey+s*.22);X.lineTo(x+s*.22,ey+s*.22);X.stroke(); }
+    else if(b.face==='cute'){ X.strokeStyle='#b38a00';X.lineWidth=1.5;X.beginPath();X.arc(x,ey+s*.14,s*.18,.1,Math.PI-.1);X.stroke();X.fillStyle='rgba(255,150,180,.55)';X.beginPath();X.ellipse(x-s*.35,ey+s*.12,s*.1,s*.06,0,0,Math.PI*2);X.fill();X.beginPath();X.ellipse(x+s*.35,ey+s*.12,s*.1,s*.06,0,0,Math.PI*2);X.fill(); }
+    else if(b.face==='obvious') { X.strokeStyle='white';X.lineWidth=1.5;X.beginPath();X.arc(x,ey+s*.14,s*.18,.1,Math.PI-.1);X.stroke(); }
+    else if(b.face==='giraffe') { X.strokeStyle='#9a6408';X.lineWidth=1.5;X.beginPath();X.arc(x,ey+s*.14,s*.18,.1,Math.PI-.1);X.stroke();X.fillStyle='#8B4513';X.fillRect(x-s*.05,by-s*.08,s*.1,s*.15);X.fillRect(x+s*.25,by-s*.12,s*.1,s*.15);X.beginPath();X.arc(x,by-s*.08,s*.07,0,Math.PI*2);X.fill();X.beginPath();X.arc(x+s*.3,by-s*.12,s*.07,0,Math.PI*2);X.fill(); }
+  }
+  X.shadowBlur=0; drawHatOverlay(x,by,s);
+}
+
+// ── Game logic ──
+function canMove(c, r, dc, dr) {
+  const nc=c+dc, nr=r+dr;
+  if(nc<0||nc>=ld.cols||nr<0||nr>=ld.rows) return false;
+  if(ld.dinoWall   && ld.bonesCol.length < (ld.bones||[]).length && nc===ld.dinoWall.c   && nr===ld.dinoWall.r)   return false;
+  if(ld.chickenWall && ld.chickensTagged < 3                       && nc===ld.chickenWall.c && nr===ld.chickenWall.r) return false;
+  if(dc===1)  return !ld.maze[r][c].r;
+  if(dc===-1) return c>0 && !ld.maze[r][c-1].r;
+  if(dr===1)  return !ld.maze[r][c].d;
+  if(dr===-1) return r>0 && !ld.maze[r-1][c].d;
+  return false;
+}
+
+function processArrival(nc, nr) {
+  // Coins
+  ld.coins.forEach((coin,i) => {
+    if(!ld.coinsCol.includes(i) && nc===coin.c && nr===coin.r) {
+      ld.coinsCol.push(i);
+      const g = inv.equippedHat==='guitar' ? 2 : 1;
+      coinBal += g; saveCoins();
+      document.getElementById('status').textContent = `+${g} coin${g>1?'s':''}! Total: ${coinBal}`;
+      updCoinDisp(); updCounter();
+    }
+  });
+  // Key collection
+  if(ld.feat.includes('keys')) {
+    if(!ld.keysCol.includes(1) && nc===ld.key1.c && nr===ld.key1.r) { ld.keysCol.push(1); document.getElementById('status').textContent='Got the blue key!'; }
+    if(!ld.keysCol.includes(2) && nc===ld.key2.c && nr===ld.key2.r) {
+      if(!ld.doorsOpen.includes(1)) document.getElementById('status').textContent='Open the blue door before grabbing this key!';
+      else { ld.keysCol.push(2); document.getElementById('status').textContent='Got the orange key!'; }
+    }
+  }
+  // Bones
+  if(ld.bones) {
+    let got=false;
+    ld.bones.forEach((b,i) => { if(!ld.bonesCol.includes(i)&&nc===b.c&&nr===b.r){ld.bonesCol.push(i);got=true;} });
+    if(got) { updCounter(); document.getElementById('status').textContent = ld.bonesCol.length>=ld.bones.length ? 'All bones found! Gate is open! 🎉' : `Bone found! ${ld.bonesCol.length}/${ld.bones.length} 🦴`; }
+  }
+  // Treasure
+  if(ld.treasures) {
+    ld.treasures.forEach((tr,i) => {
+      if(!ld.treasuresOpen.includes(i) && nc===tr.c && nr===tr.r) {
+        ld.treasuresOpen.push(i);
+        const g = inv.equippedHat==='guitar' ? 20 : 10;
+        coinBal += g; saveCoins();
+        document.getElementById('status').textContent = `Treasure! +${g} coins! Total: ${coinBal} 💎`;
+        updCoinDisp(); updCounter();
+      }
+    });
+  }
+  // Chickens
+  if(ld.chickenPos && ld.chickensTagged < 3) {
+    const cp = ld.chickenPos[ld.chickensTagged];
+    if(cp && nc===cp.c && nr===cp.r) {
+      ld.chickensTagged++; updCounter();
+      document.getElementById('status').textContent = ld.chickensTagged>=3 ? 'All chickens caught! Gate is open! 🐔' : `Chicken caught! ${ld.chickensTagged}/3 🐔`;
+    }
+  }
+  // Cheese
+  if(ld.feat.includes('cheese') && !ld.cheeseFound && nc===ld.cheese.c && nr===ld.cheese.r) {
+    ld.cheeseFound=true; ld.cheeseBubble=true;
+    document.getElementById('status').textContent='You found the cheese!';
+    drawAll(); setTimeout(()=>{ld.cheeseBubble=false;drawAll();},3500); return true;
+  }
+  // Rose
+  if(ld.feat.includes('rose') && !ld.roseFound && nc===ld.rose.c && nr===ld.rose.r) {
+    ld.roseFound=true; ld.roseBubble=true;
+    document.getElementById('status').textContent='You found the rose!';
+    drawAll(); setTimeout(()=>{ld.roseBubble=false;drawAll();},3500); return true;
+  }
+  // Traps
+  if(ld.feat.includes('traps')) {
+    const onF=nc===ld.trapFinish.c&&nr===ld.trapFinish.r, onS=nc===ld.trapStart.c&&nr===ld.trapStart.r;
+    if((onF||onS) && inv.equippedHat==='obsidian') { document.getElementById('status').textContent='Obsidian flames burned the trap!'; }
+    else if(onF) { playerPos={c:ld.cols-2,r:ld.rows-2}; ld.trapMsg='Lucky! Warped near the goal!'; ld.showTrap=1; drawAll(); setTimeout(()=>{ld.showTrap=0;drawAll();},1800); return true; }
+    else if(onS) { playerPos={c:0,r:0}; ld.trapMsg='Oh no! Back to the start!'; ld.showTrap=1; drawAll(); setTimeout(()=>{ld.showTrap=0;drawAll();},1800); return true; }
+  }
+  // Octopus
+  if(ld.feat.includes('octopus') && ld.octopus && nc===ld.octopus.c && nr===ld.octopus.r && Date.now()>=frozenUntil) {
+    stopOct(); ld.caught=true;
+    document.getElementById('status').textContent='The octopus caught you! Try again.';
+    drawAll(); setTimeout(()=>{if(ld.caught)setupLevel();},1500); return true;
+  }
+  return false;
+}
+
+function handleWin() {
+  won=true; stopOct(); teleMode=false; saveProgress(cur+1);
+  const nm = BOTS[ld.bot].name;
+  if(cur < LEVELS.length-1) { document.getElementById('win-msg').textContent=`${nm} made it through Level ${cur+1}! 🎉`; document.getElementById('next-btn').style.display='inline-block'; }
+  else { document.getElementById('win-msg').textContent=`You beat ALL ${LEVELS.length} levels! AMAZING! 🏆`; document.getElementById('home-btn').style.display='inline-block'; }
+  document.getElementById('status').textContent='';
+}
+
+function move(dc, dr) {
+  if(won || ld.caught) return;
+  const nc=playerPos.c+dc, nr=playerPos.r+dr;
+  if(!canMove(playerPos.c,playerPos.r,dc,dr)) return;
+  // Door blocking
+  if(ld.feat.includes('keys')) {
+    if(!ld.doorsOpen.includes(1) && nc===ld.door1.c && nr===ld.door1.r) { if(!ld.keysCol.includes(1)){document.getElementById('status').textContent='Locked! Find the blue key first.';return;} ld.doorsOpen.push(1);document.getElementById('status').textContent='Blue door opened!'; }
+    if(!ld.doorsOpen.includes(2) && nc===ld.door2.c && nr===ld.door2.r) { if(!ld.doorsOpen.includes(1)){document.getElementById('status').textContent='Open blue door first!';return;} if(!ld.keysCol.includes(2)){document.getElementById('status').textContent='Locked! Find the orange key first.';return;} ld.doorsOpen.push(2);document.getElementById('status').textContent='Both doors open!'; }
+  }
+  playerPos={c:nc,r:nr};
+  if(processArrival(nc,nr)) return;
+  drawAll();
+  if(nc===ld.cols-1 && nr===ld.rows-1) handleWin();
+}
+
+function doTeleport(dc, dr) {
+  if(won||ld.caught){teleMode=false;return;}
+  const tc=Math.max(0,Math.min(ld.cols-1,playerPos.c+dc*10)), tr=Math.max(0,Math.min(ld.rows-1,playerPos.r+dr*10));
+  if(ld.dinoWall   && ld.bonesCol.length<(ld.bones||[]).length && tc===ld.dinoWall.c   && tr===ld.dinoWall.r)   { document.getElementById('status').textContent="Can't teleport through the bone gate!"; teleMode=false; drawAll(); return; }
+  if(ld.chickenWall && ld.chickensTagged<3                       && tc===ld.chickenWall.c && tr===ld.chickenWall.r) { document.getElementById('status').textContent="Can't teleport through the chicken gate!"; teleMode=false; drawAll(); return; }
+  playerPos={c:tc,r:tr}; teleMode=false;
+  if(processArrival(tc,tr)) return;
+  drawAll();
+  if(tc===ld.cols-1 && tr===ld.rows-1) handleWin();
+}
+
+// ── Shop ──
+function renderShop() {
+  const html = SHOP.map(item => {
+    let ac = '';
+    if(item.type==='hat') {
+      if(inv.hats.includes(item.id)) {
+        const eq = inv.equippedHat===item.id;
+        ac = `<button class="gbtn" onclick="toggleEquip('${item.id}')">${eq?'Unequip':'Equip'}</button><span class="${eq?'eb':'ob'}">${eq?'Equipped':'Owned'}</span>`;
+      } else {
+        ac = `<button class="gbtn" ${coins>=item.price?'':'disabled'} onclick="buyItem('${item.id}')">Buy ${item.price}💰</button>`;
+      }
+    } else {
+      const cnt = item.id==='booster' ? inv.boosters : inv.food;
+      ac = `<button class="gbtn" ${coinBal>=item.price?'':'disabled'} onclick="buyItem('${item.id}')">Buy ${item.price}💰</button>${cnt>0?`<span style="font-size:11px;color:#556">have ${cnt}</span>`:''}`;
+    }
+    return `<div class="shop-item"><div class="sico">${item.icon}</div><div class="sinf"><div class="snm">${item.name}</div><div class="sds">${item.desc}</div></div><div class="sact">${ac}</div></div>`;
+  }).join('');
+  document.getElementById('shop-items').innerHTML = html;
+}
+
+window.buyItem = function(id) {
+  const item = SHOP.find(i=>i.id===id); if(!item) return;
+  if(coinBal < item.price) { document.getElementById('shop-msg').textContent='Not enough coins!'; document.getElementById('shop-msg').style.color='#e53935'; return; }
+  if(item.type==='hat' && inv.hats.includes(id)) return;
+  coinBal -= item.price;
+  if(item.type==='hat') inv.hats.push(id);
+  else if(id==='booster') inv.boosters++;
+  else if(id==='food')    inv.food++;
+  document.getElementById('shop-msg').textContent=`Bought ${item.name}!`; document.getElementById('shop-msg').style.color='#4caf50';
+  saveCoins(); saveInv(); updCoinDisp(); updInvDisp(); updUse(); renderShop(); drawAll();
+};
+window.toggleEquip = function(id) {
+  inv.equippedHat = inv.equippedHat===id ? null : id;
+  saveInv(); updInvDisp(); renderShop(); drawAll();
+};
+
+// ── Event listeners ──
+document.getElementById('level-jump').addEventListener('change', e => { cur=parseInt(e.target.value); setupLevel(); C.focus(); });
+document.getElementById('use-boost').addEventListener('click', () => { if(inv.boosters>0&&boostLeft===0){inv.boosters--;boostLeft=10;saveInv();updInvDisp();updUse();drawAll();C.focus();} });
+document.getElementById('use-food').addEventListener('click',  () => { if(inv.food>0&&Date.now()>=frozenUntil){if(!ld.feat.includes('octopus')){document.getElementById('status').textContent='No enemies to freeze here!';return;}inv.food--;frozenUntil=Date.now()+6000;saveInv();updInvDisp();updUse();drawAll();C.focus();} });
+document.getElementById('shop-btn').addEventListener('click',   () => { const p=document.getElementById('shop-panel');p.style.display=p.style.display==='none'||!p.style.display?'block':'none';renderShop(); });
+document.getElementById('close-shop').addEventListener('click', () => { document.getElementById('shop-panel').style.display='none'; });
+document.getElementById('next-btn').addEventListener('click',   () => { cur++; setupLevel(); C.focus(); });
+document.getElementById('restart-btn').addEventListener('click',() => { setupLevel(); C.focus(); });
+document.getElementById('home-btn').addEventListener('click',   () => { cur=0; setupLevel(); C.focus(); });
+document.getElementById('reset-btn').addEventListener('click',  () => {
+  if(!confirm('Reset all progress, coins and inventory?')) return;
+  hi=0; coinBal=0; inv={hats:[],boosters:0,food:0,equippedHat:null};
+  lsSet(LS_PROGRESS,0); lsSet(LS_COINS,0); lsSet(LS_INVENTORY,inv);
+  cur=0; refreshSel(); updCoinDisp(); updInvDisp(); updUse(); renderShop(); setupLevel(); C.focus();
+});
+
+C.addEventListener('keydown', e => {
+  const map = {ArrowRight:[1,0],ArrowLeft:[-1,0],ArrowDown:[0,1],ArrowUp:[0,-1]};
+  if(e.key===' ') {
+    e.preventDefault();
+    if(inv.equippedHat==='magic'&&!won&&!ld.caught) { teleMode=!teleMode; document.getElementById('status').textContent=teleMode?'✨ Teleport ready! Press an arrow key to jump 10 squares.':'Teleport cancelled.'; drawAll(); }
+    return;
+  }
+  if(map[e.key]) {
+    e.preventDefault();
+    const [dc,dr] = map[e.key];
+    if(teleMode) { doTeleport(dc,dr); return; }
+    const base  = inv.equippedHat==='zoomey' ? 3 : 1;
+    const extra = boostLeft>0 ? 2 : 0;
+    if(boostLeft>0) boostLeft--;
+    const total = base + extra;
+    move(dc,dr);
+    for(let i=1;i<total;i++) setTimeout(()=>{if(!won&&!ld.caught)move(dc,dr);if(i===total-1)updUse();},i*80);
+    if(total===1) updUse();
+  }
+});
+
+setInterval(() => {
+  const needs = (ld.feat&&(ld.feat.includes('octopus')||ld.feat.includes('underwater')))||boostLeft>0||Date.now()<frozenUntil||inv.equippedHat==='obsidian'||teleMode;
+  if(needs && !won && !ld.caught) { drawAll(); updUse(); }
+}, 200);
+
+// ── Init ──
+refreshSel(); updCoinDisp(); updInvDisp(); setupLevel(); updUse(); renderShop(); C.focus();
+
+} // end initGame()
+</script>
+</body>
+</html>
